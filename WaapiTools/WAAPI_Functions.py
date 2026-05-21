@@ -60,7 +60,22 @@ class Core_object(WwiseBase):
                 "value": value
                 }
         return self.client.call("ak.wwise.core.object.setProperty",args)
-
+    
+    def setReference(self, object_id, reference, value):
+        args ={
+                "object": object_id,
+                "reference": reference,
+                "value": value
+                }
+        return self.client.call("ak.wwise.core.object.setReference",args)
+    
+    def switchContainer_addAssignment(self, child, stateOrSwitch):
+        args ={
+                "child": child,
+                "stateOrSwitch": stateOrSwitch
+                }
+        return self.client.call("ak.wwise.core.switchContainer.addAssignment",args)
+    
     def setName(self, object_id, new_name):
         args = {
             "object": object_id,
@@ -103,6 +118,14 @@ class Core_object(WwiseBase):
         }
         return self.client.call("ak.wwise.core.object.get", args, options=options)
         # ['return'][0]['...']['...'] 取值
+    
+    def object_move(self, object_id, parent, onNameConflict:str="fail"):
+        args = {
+            "object":object_id,
+            "parent":parent,
+            "onNameConflict": onNameConflict # rename\replace\fail（默认）
+        }
+        return self.client.call("ak.wwise.core.object.move", args)
     
     def play_event_create(self, 
                           event_name, 

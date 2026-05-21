@@ -1,6 +1,25 @@
 {
    "commands":[
-    {
+        {
+           "id":"T_Vo_SetPlayerSwitch_FromActorMixer.py",
+           "displayName":"[T] Vo_SetPlayerSwitch_FromActorMixer",  
+           "program":"py.exe",
+           "args": "${CurrentCommandDirectory}\\Tools\\T_Vo_SetPlayerSwitch_FromActorMixer.py",   
+           "cwd": "",
+           "defaultShortcut": "",
+           "redirectOutputs": "",    
+		   "startMode":"MultipleSelectionSingleProcessSpaceSeparated",                    
+           "contextMenu":{
+                    "basePath" : "Tools",  
+                    "enabledFor": "ActorMixer",
+                    "visibleFor": "ActorMixer"
+               },
+           "mainMenu":{
+                   "basePath":"Extra/[T] Tools" 
+               }
+       },    
+
+        {
            "id":"T_Event_Creator.py",
            "displayName":"[T] Event_Creator",  
            "program":"py.exe",   
@@ -18,6 +37,7 @@
                    "basePath":"Extra/[T] Tools" 
                }                  
        },
+       
        {
            "id":"T_Rename_WavAndEvent_FromSound.py",
            "displayName":"[T] Rename_WavAndEvent_FromSound",  
