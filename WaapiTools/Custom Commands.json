@@ -1,6 +1,25 @@
 {
    "commands":[
         {
+           "id":"T_Sound_ToRandomContainer.py",
+           "displayName":"[T] Sound_ToRandomContainer",  
+           "program":"py.exe",
+           "args": "${CurrentCommandDirectory}\\Tools\\T_Sound_ToRandomContainer.py",   
+           "cwd": "",
+           "defaultShortcut": "",
+           "redirectOutputs": "",    
+		   "startMode":"MultipleSelectionSingleProcessSpaceSeparated",                    
+           "contextMenu":{
+                    "basePath" : "Tools",  
+                    "enabledFor": "Sound",
+                    "visibleFor": "Sound"
+               },
+           "mainMenu":{
+                   "basePath":"Extra/[T] Tools" 
+               }
+       },    
+
+        {
            "id":"T_Vo_SetPlayerSwitch_FromActorMixer.py",
            "displayName":"[T] Vo_SetPlayerSwitch_FromActorMixer",  
            "program":"py.exe",
