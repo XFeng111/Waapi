@@ -397,14 +397,12 @@ class WavRenamerApp:
         ttk.Button(excel_frame, text="打开", command=self.open_excel, width=6).grid(
             row=0, column=2, padx=(4, 0))
 
-        # 列设置（同行，折叠显示）
+        # 列设置（只读原名列、新名列、起始行，不再使用状态列/路径列）
         col_sub = ttk.Frame(excel_frame)
         col_sub.grid(row=1, column=0, columnspan=3, sticky='w', pady=(4, 0))
         for label, attr, default in [
             ("原名称列", "old_col", "A"),
             ("新名称列", "new_col", "B"),
-            ("状态列", "status_col", "C"),
-            ("路径列", "path_col", "D"),
             ("起始行", "start_row", "2"),
         ]:
             ttk.Label(col_sub, text=f"{label}:").pack(side=tk.LEFT, padx=(8, 2))
@@ -593,36 +591,14 @@ class WavRenamerApp:
 
     # ──────────────────────── Excel 操作 ────────────────────────
     def _check_and_init_excel_columns(self):
-        try:
-            excel_file = self.excel_path.get()
-            if not excel_file:
-                return
-            wb = load_workbook(excel_file)
-            ws = wb.active
-            status_col = self.status_col.get().upper()
-            path_col = self.path_col.get().upper()
-            blue_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
-            white_bold = Font(bold=True, color="FFFFFF")
-            if ws[f"{status_col}1"].value is None:
-                ws[f"{status_col}1"] = "状态"
-                ws[f"{status_col}1"].fill = blue_fill
-                ws[f"{status_col}1"].font = white_bold
-            if ws[f"{path_col}1"].value is None:
-                ws[f"{path_col}1"] = "文件路径"
-                ws[f"{path_col}1"].fill = blue_fill
-                ws[f"{path_col}1"].font = white_bold
-            wb.save(excel_file)
-            wb.close()
-            self._log("Excel列已初始化", 'info')
-        except Exception as e:
-            self._log(f"初始化Excel列失败: {e}", 'warning')
+        """不再写入Excel状态列，此方法保留但不执行任何操作"""
+        pass
 
     def read_excel_mapping(self) -> Dict[str, Dict]:
-        """读取Excel重命名映射（跳过已成功项），并输出诊断信息"""
+        """读取Excel重命名映射（读取所有有原名+新名的行，不检查状态列）"""
         excel_file = self.excel_path.get()
         old_col = self.old_col.get().strip().upper()
         new_col = self.new_col.get().strip().upper()
-        status_col = self.status_col.get().strip().upper()
         start_row_val = self.start_row.get().strip()
         try:
             start_row = int(start_row_val)
@@ -630,7 +606,7 @@ class WavRenamerApp:
             self._log(f"起始行设置无效: '{start_row_val}'，使用默认值 2", 'warning')
             start_row = 2
 
-        self._log(f"读取Excel列设置: 原名={old_col}, 新名={new_col}, 状态={status_col}, 起始行={start_row}", 'info')
+        self._log(f"读取Excel列设置: 原名={old_col}, 新名={new_col}, 起始行={start_row}", 'info')
         try:
             wb = load_workbook(excel_file, data_only=True)
             ws = wb.active
@@ -644,15 +620,10 @@ class WavRenamerApp:
             self._log(f"第1行内容: {', '.join(row1_vals)}", 'info')
 
             rename_map = {}
-            skipped_count = 0
             empty_count = 0
             for row in range(start_row, ws.max_row + 1):
                 old_name = ws[f"{old_col}{row}"].value
                 new_name = ws[f"{new_col}{row}"].value
-                status = ws[f"{status_col}{row}"].value
-                if status and str(status).strip() == "✅成功":
-                    skipped_count += 1
-                    continue
                 if old_name and new_name:
                     old_name = str(old_name).strip()
                     new_name = str(new_name).strip()
@@ -662,6 +633,7 @@ class WavRenamerApp:
                         new_name = new_name[:-4]
                     if old_name and new_name:
                         rename_map[old_name] = {'new_name': new_name, 'row': row}
+                    empty_count = 0   # 有数据行，重置空行计数
                 else:
                     if old_name is None and new_name is None:
                         empty_count += 1
@@ -671,8 +643,6 @@ class WavRenamerApp:
                     break
 
             wb.close()
-            if skipped_count > 0:
-                self._log(f"跳过 {skipped_count} 条已成功记录（增量重命名）", 'info')
             return rename_map
         except Exception as e:
             self._log(f"读取Excel失败: {e}", 'error')
@@ -680,42 +650,8 @@ class WavRenamerApp:
             return {}
 
     def update_excel_with_results(self):
-        """将重命名结果回写到 Excel"""
-        try:
-            excel_file = self.excel_path.get()
-            if not excel_file:
-                return
-            status_col = self.status_col.get().upper()
-            path_col = self.path_col.get().upper()
-            wb = load_workbook(excel_file)
-            ws = wb.active
-            s_fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
-            s_font = Font(color="006100", bold=True)
-            f_fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
-            f_font = Font(color="9C0006", bold=True)
-            for result in self.rename_results:
-                row = result.get('row')
-                if not row:
-                    continue
-                if result['status'] == '成功':
-                    ws[f"{status_col}{row}"] = "✅成功"
-                    ws[f"{status_col}{row}"].fill = s_fill
-                    ws[f"{status_col}{row}"].font = s_font
-                    ws[f"{path_col}{row}"] = result.get('new_path', '')
-                elif result['status'] == '失败':
-                    ws[f"{status_col}{row}"] = f"❌失败: {result.get('error','')}"
-                    ws[f"{status_col}{row}"].fill = f_fill
-                    ws[f"{status_col}{row}"].font = f_font
-                    ws[f"{path_col}{row}"] = result.get('old_path', '')
-                else:
-                    ws[f"{status_col}{row}"] = f"⏭️跳过: {result.get('error','')}"
-                    ws[f"{path_col}{row}"] = result.get('old_path', '')
-            wb.save(excel_file)
-            wb.close()
-            self._log(f"Excel已更新: {excel_file}", 'success')
-        except Exception as e:
-            self._log(f"更新Excel失败: {e}", 'error')
-            messagebox.showerror("错误", f"更新Excel失败:\n{e}")
+        """不再回写Excel状态，此方法保留但不执行任何操作"""
+        pass
 
     # ──────────────────────── WAV扫描 ────────────────────────
     def get_all_wav_files(self, folder_path: str) -> Dict[str, str]:
@@ -1215,21 +1151,8 @@ class WavRenamerApp:
             self._log(f"保存撤销历史失败: {e}", 'warning')
 
     def _clear_excel_status(self, operations):
-        try:
-            excel_file = self.excel_path.get()
-            status_col = self.status_col.get().upper()
-            wb = load_workbook(excel_file)
-            ws = wb.active
-            for op in operations:
-                row = op.get('row')
-                if row:
-                    ws[f"{status_col}{row}"] = ""
-                    ws[f"{status_col}{row}"].fill = PatternFill(fill_type=None)
-            wb.save(excel_file)
-            wb.close()
-            self._log("Excel状态已清除", 'info')
-        except Exception as e:
-            self._log(f"清除Excel状态失败: {e}", 'warning')
+        """不再操作Excel状态列，此方法保留但不执行任何操作"""
+        pass
 
     # ──────────────────────── Tab2: 删除字符串重命名 WAV ────────────────────────
     def _strip_preview(self):
